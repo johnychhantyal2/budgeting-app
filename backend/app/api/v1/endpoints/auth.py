@@ -6,7 +6,7 @@ import json
 from ....crud import crud_user
 from ....db.session import get_db
 from ....schemas.user import UserCreate, UserPublic, UserLogin  # Make sure to use UserPublic
-from ....core.security import authenticate_user, create_access_token
+from ....core.security import authenticate_user, create_access_token,validate_password
 from ....schemas.token import Token
 from datetime import timedelta
 from ....core.config import settings  # Import settings
@@ -23,6 +23,14 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)) -> Any:
             detail="The user with this email already exists in the system.",
         )
     
+    # Validate the password
+    if not validate_password(user_in.password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password does not meet security requirements.",
+        )
+
+    # Proceed with user creation, assuming create_user hashes the password
     user = crud_user.create_user(db=db, user_in=user_in)
     return user  # Ensure the returned user matches the UserPublic schema
 
@@ -45,3 +53,4 @@ async def login(request: Request, db: Session = Depends(get_db)) -> Any:
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+

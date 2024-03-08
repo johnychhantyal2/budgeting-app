@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from ..models.user import User
 from ..schemas.user import UserCreate
 from ..core.security import get_password_hash
+from datetime import datetime 
 
 def create_user(db: Session, user_in: UserCreate) -> User:
     """
@@ -27,6 +28,7 @@ def create_user(db: Session, user_in: UserCreate) -> User:
         address_line=user_in.address_line,
         is_active=True,  # You might want to set this to False if email verification is required
         is_superuser=False,  # Default to False, can be changed manually or through another process
+        date_joined=datetime.utcnow(),  # Set the current datetime
         # Include other fields as necessary
     )
     try:
