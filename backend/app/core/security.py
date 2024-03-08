@@ -21,6 +21,19 @@ SECRET_KEY = settings.SECRET_KEY  # Define this in your settings, e.g., using en
 ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES  # or whatever suits your application
 
+def validate_password(plain_password: str) -> bool:
+    # Check if password meets minimum length requirement
+    if len(plain_password) < 8:
+        return False
+    
+    # Check for additional strict requirements
+    has_uppercase = any(char.isupper() for char in plain_password)
+    has_lowercase = any(char.islower() for char in plain_password)
+    has_digit = any(char.isdigit() for char in plain_password)
+    has_special = any(char in '!@#$%^&*()-_=+[]{}|;:,.<>?`~' for char in plain_password)
+    
+    return has_uppercase and has_lowercase and has_digit and has_special
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verify a password against a hashed version.
@@ -65,5 +78,9 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[Use
         return None
     if not verify_password(password, user.hashed_password):
         return None
+    # Update last_login field
+    user.last_login = datetime.utcnow()
+    db.add(user)
+    db.commit()
     return user
 
