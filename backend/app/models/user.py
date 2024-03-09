@@ -2,7 +2,9 @@
 
 from sqlalchemy import Boolean, Column, Integer, String, DateTime, Text, Date, Enum
 from sqlalchemy.orm import relationship
-from ..db.session import Base  # Ensure you have a Base class derived from SQLAlchemy's declarative_base()
+from ..db.session import Base
+from ..models.category import Category # Used by SQLAlchemy relationship, not directly accessed
+from ..models.transactions import Transaction # Used by SQLAlchemy relationship, not directly accessed
 
 class User(Base):
     __tablename__ = "users"
@@ -31,7 +33,13 @@ class User(Base):
     is_email_verified = Column(Boolean, default=False)
     is_deleted = Column(Boolean, default=False)
     role = Column(Enum('member', 'moderator', 'administrator'), default='member', nullable=False)
-    
+
+    # Relationship to Categories
+    categories = relationship("Category", back_populates="user", cascade="all, delete-orphan")
+
+     # Relationship to Transactions
+    transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
+
 
     # If you have relationships to other tables, define them here
     # For example, if users can have multiple posts:
