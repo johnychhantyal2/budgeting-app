@@ -5,12 +5,20 @@ import os
 from typing import Any, Union, Optional
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from .config import settings
 from ..crud import crud_user
 from sqlalchemy.orm import Session
 from ..models.user import User
+from ..schemas.token import TokenData
+from ..models.blocklist import BlocklistedToken
+import logging
+from ..db.session import get_db
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Configuration for password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -46,18 +54,34 @@ def get_password_hash(password: str) -> str:
     """
     return pwd_context.hash(password)
 
-def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None) -> str:
+def create_access_token(username: str, access_token_expires_delta: Union[timedelta, None] = None, refresh_token_expires_delta: Union[timedelta, None] = None) -> dict:
     """
-    Create a JWT token as a string.
+    Create JWT access and refresh tokens using the username as the subject of the tokens.
     """
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+    access_token_to_encode = {"sub": username}
+    refresh_token_to_encode = {"sub": username}
+
+    if access_token_expires_delta:
+        access_expire = datetime.utcnow() + access_token_expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)  # Default to short-lived token for security
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+        access_expire = datetime.utcnow() + timedelta(minutes=15)  # Default to short-lived token for security
+    
+    if refresh_token_expires_delta:
+        refresh_expire = datetime.utcnow() + refresh_token_expires_delta
+    else:
+        refresh_expire = datetime.utcnow() + timedelta(days=7)  # Default to a longer-lived refresh token
+
+    access_token_to_encode.update({"exp": access_expire})
+    refresh_token_to_encode.update({"exp": refresh_expire})
+
+    access_token = jwt.encode(access_token_to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    refresh_token = jwt.encode(refresh_token_to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+    logger.info(f"Tokens created for user: {username}")
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token
+    }
 
 def verify_token(token: str, credentials_exception) -> Union[str, Any]:
     """
@@ -84,3 +108,75 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[Use
     db.commit()
     return user
 
+async def get_current_active_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+    from ..crud.crud_user import get_user_by_username  # Import the necessary function
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            logger.error("JWT 'sub' claim is missing")
+            raise credentials_exception
+        logger.info(f"Token decoded successfully for username: {username}")
+    except JWTError as e:
+        logger.error(f"JWTError occurred: {e}")
+        raise credentials_exception
+
+    user = get_user_by_username(db, username=username)
+    if user is None:
+        logger.error(f"User not found for username: {username}")
+        raise credentials_exception
+
+    logger.info(f"User {username} authenticated successfully")
+    return user
+
+def add_token_to_blocklist(db: Session, token: str) -> bool:
+    try:
+        # Decode the token to get its expiry time
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        expires_at = datetime.utcfromtimestamp(payload.get("exp"))
+
+        # Create a new BlocklistedToken instance
+        blocklisted_token = BlocklistedToken(token=token, expires_at=expires_at)
+
+        # Add to the database and commit
+        db.add(blocklisted_token)
+        db.commit()
+
+        logger.info("Token successfully added to blocklist.")
+        return True
+    except JWTError as e:
+        logger.error(f"JWT error adding token to blocklist: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Error adding token to blocklist: {e}")
+        return False
+    
+def validate_refresh_token(token: str, db: Session) -> str:
+    try:
+        # Decode the refresh token
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        username: str = payload.get("sub")
+        expiration: int = payload.get("exp")
+
+        # Check if the token has expired
+        if datetime.utcfromtimestamp(expiration) < datetime.utcnow():
+            logger.error(f"Refresh token expired for user: {username}")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired")
+
+        # Check if the token is in the blocklist (revoked)
+        if db.query(BlocklistedToken).filter(BlocklistedToken.token == token).first():
+            logger.error(f"Refresh token revoked for user: {username}")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token revoked")
+
+    except JWTError as e:
+        logger.error(f"JWT error validating refresh token: {e}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    return username
