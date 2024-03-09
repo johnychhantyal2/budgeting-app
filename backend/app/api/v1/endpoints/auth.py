@@ -1,17 +1,36 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request  # Include Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import Any
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm  # Include this import
-import json
+from fastapi.security import OAuth2PasswordRequestForm
 from ....crud import crud_user
 from ....db.session import get_db
-from ....schemas.user import UserCreate, UserPublic, UserLogin  # Make sure to use UserPublic
-from ....core.security import authenticate_user, create_access_token,validate_password
+from ....schemas.user import UserCreate, UserPublic, PasswordChange,UserLogin
+from ....core.security import authenticate_user, create_access_token, validate_password, get_password_hash, verify_password, add_token_to_blocklist, get_current_active_user, oauth2_scheme, validate_refresh_token
 from ....schemas.token import Token
 from datetime import timedelta
-from ....core.config import settings  # Import settings
+from ....core.config import settings
+from ....models.user import User
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+@router.post("/login", response_model=Token)  # Update Token model to include refresh_token
+async def login(user_login: UserLogin, db: Session = Depends(get_db)) -> Any:
+    user = authenticate_user(db, user_login.username, user_login.password)
+    if not user:
+        logger.warning(f"Authentication failed for user: {user_login.username}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
+    
+    tokens = create_access_token(
+        username=user.username,
+        access_token_expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        refresh_token_expires_delta=timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)  # Make sure to define this in your settings
+    )
+    logger.info(f"User {user_login.username} authenticated successfully")
+    return tokens
 
 @router.post("/register", response_model=UserPublic)  # Use UserPublic here
 def register(user_in: UserCreate, db: Session = Depends(get_db)) -> Any:
@@ -34,23 +53,29 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)) -> Any:
     user = crud_user.create_user(db=db, user_in=user_in)
     return user  # Ensure the returned user matches the UserPublic schema
 
-@router.post("/login", response_model=Token)
-async def login(request: Request, db: Session = Depends(get_db)) -> Any:
-    data = await request.body()
-    data_dict = json.loads(data.decode())
-    username = data_dict.get("username")
-    password = data_dict.get("password")
-    
-    user = authenticate_user(db, username, password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+@router.post("/change-password")
+def change_password(password_change: PasswordChange, user: User = Depends(get_current_active_user), db: Session = Depends(get_db)) -> Any:
+    if not verify_password(password_change.old_password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect password.")
+    if not validate_password(password_change.new_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password does not meet security requirements.")
+    user.hashed_password = get_password_hash(password_change.new_password)
+    db.commit()
+    return {"message": "Password changed successfully."}
 
+@router.post("/logout")
+def logout(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Any:
+    is_added_to_blocklist = add_token_to_blocklist(db, token)
+    if not is_added_to_blocklist:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not process logout request.")
+    return {"message": "Logged out successfully."}
+
+@router.post("/refresh-token", response_model=Token)
+def refresh_token(refresh_token: str, db: Session = Depends(get_db)) -> Any:
+    username = validate_refresh_token(refresh_token, db)  # Implement this function to validate the refresh token and get the username
+    if not username:
+        logger.error("Invalid or expired refresh token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token")
+    tokens = create_access_token(username=username)
+    logger.info(f"Access token refreshed successfully for user: {username}")
+    return tokens

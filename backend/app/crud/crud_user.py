@@ -46,8 +46,11 @@ def get_user_by_email(db: Session, email: str) -> User:
     """
     return db.query(User).filter(User.email == email).first()
 
-def get_user_by_username(db: Session, username: str) -> User:
+def get_user_by_username(db: Session, username: str, include_deleted: bool = False) -> User:
     """
-    Retrieve a user by username.
+    Retrieve a user by username, with an option to include or exclude soft-deleted users.
     """
-    return db.query(User).filter(User.username == username).first()
+    query = db.query(User).filter(User.username == username)
+    if not include_deleted:
+        query = query.filter(User.is_deleted == False)
+    return query.first()

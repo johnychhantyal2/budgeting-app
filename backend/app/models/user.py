@@ -1,6 +1,6 @@
 # app/models/user.py
 
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, Text, Date
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, Text, Date, Enum
 from sqlalchemy.orm import relationship
 from ..db.session import Base  # Ensure you have a Base class derived from SQLAlchemy's declarative_base()
 
@@ -29,6 +29,9 @@ class User(Base):
     reset_password_token_expiry = Column(DateTime)
     email_verification_token = Column(String(255), index=True)
     is_email_verified = Column(Boolean, default=False)
+    is_deleted = Column(Boolean, default=False)
+    role = Column(Enum('member', 'moderator', 'administrator'), default='member', nullable=False)
+    
 
     # If you have relationships to other tables, define them here
     # For example, if users can have multiple posts:

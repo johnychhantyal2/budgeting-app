@@ -30,8 +30,23 @@ class UserPublic(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     is_active: bool = True
+    role: str = "member"  # Default role
     # Include other fields that are safe to expose publicly
     # Do NOT include the password or any other sensitive information
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+class PasswordChange(BaseModel):
+    old_password: str = Field(..., min_length=8, description="The current password of the user.")
+    new_password: str = Field(..., min_length=8, description="The new password for the user.")
+
+    class Config:
+        orm_mode = True
+
+class UserRoleUpdate(BaseModel):
+    role: str = Field(..., description="The new role for the user.")
 
     class Config:
         orm_mode = True
