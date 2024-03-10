@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from ..models.user import User
-from ..schemas.user import UserCreate
+from ..schemas.user import UserCreate, UserUpdate
 from ..core.security import get_password_hash
 from datetime import datetime 
 
@@ -54,3 +54,15 @@ def get_user_by_username(db: Session, username: str, include_deleted: bool = Fal
     if not include_deleted:
         query = query.filter(User.is_deleted == False)
     return query.first()
+
+def update_user_profile(db: Session, user_id: int, update_data: UserUpdate):
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if db_user:
+        update_data_dict = update_data.dict(exclude_unset=True)  # Only update fields that are provided
+        for key, value in update_data_dict.items():
+            setattr(db_user, key, value)
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+    return None
+

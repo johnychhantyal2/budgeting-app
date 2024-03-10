@@ -26,6 +26,7 @@ async def read_category(category_id: int, db: Session = Depends(get_db), current
 
 @router.put("/{category_id}/", response_model=Category)
 async def update_category_endpoint(category_id: int, category_data: CategoryUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    # Call update_category, which now includes the unique name check
     updated_category = update_category(db=db, category_id=category_id, category_data=category_data, user_id=current_user.id)
     if updated_category is None:
         raise HTTPException(status_code=404, detail="Category not found or you don't have permission to update it")
