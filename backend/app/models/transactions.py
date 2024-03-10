@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, DECIMAL, Date, Text, TIMESTAMP, text, BIGINT
+from sqlalchemy import Column, ForeignKey, Integer, String, DECIMAL, Date, Text, TIMESTAMP, text, BIGINT, Boolean
 from sqlalchemy.orm import relationship
 from ..db.session import Base  # Make sure this import path is correct based on your project structure
 
@@ -15,6 +15,7 @@ class Transaction(Base):
     Location = Column(String(255))
     CreatedAt = Column(TIMESTAMP, server_default="CURRENT_TIMESTAMP")
     UpdatedAt = Column(TIMESTAMP, server_default="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
+    Is_Income = Column(Boolean, nullable=False, default=False)
 
     user = relationship("User", back_populates="transactions")
     category = relationship("Category", back_populates="transactions")

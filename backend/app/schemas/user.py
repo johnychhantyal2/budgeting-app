@@ -1,8 +1,8 @@
 # app/schemas/user.py
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, validator
 from typing import Optional
-from datetime import date
+from datetime import date, datetime
 
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=255)
@@ -24,13 +24,19 @@ class UserLogin(BaseModel):
     password: str
 
 class UserPublic(BaseModel):
-    id: int
+    # id: int
     username: str
     email: EmailStr
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     is_active: bool = True
     role: str = "member"  # Default role
+    bio: Optional[str] = None
+    country: Optional[str] = Field(None, max_length=100)
+    city: Optional[str] = Field(None, max_length=100)
+    postal_code: Optional[str] = Field(None, max_length=20)
+    address_line: Optional[str] = Field(None, max_length=255)
+    last_login: Optional[datetime] = None
     # Include other fields that are safe to expose publicly
     # Do NOT include the password or any other sensitive information
 
@@ -50,3 +56,26 @@ class UserRoleUpdate(BaseModel):
 
     class Config:
         orm_mode = True
+
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    first_name: Optional[str] = Field(None, max_length=255)
+    last_name: Optional[str] = Field(None, max_length=255)
+    phone_number: Optional[str] = Field(None, max_length=20)
+    date_of_birth: Optional[date] = None
+    bio: Optional[str] = None
+    country: Optional[str] = Field(None, max_length=100)
+    city: Optional[str] = Field(None, max_length=100)
+    postal_code: Optional[str] = Field(None, max_length=20)
+    address_line: Optional[str] = Field(None, max_length=255)
+
+    class Config:
+        orm_mode = True
+        extra = "forbid" # Forbid any extra fields not defined in the model
+
+# Optional: Custom validator example
+@validator('*')
+def check_empty_strings(cls, value, field):
+    if value == "":
+        raise ValueError(f"{field.name} cannot be empty")
+    return value

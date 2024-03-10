@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from ....db.session import get_db
 from ....schemas.transaction import TransactionCreate, Transaction
+from ....schemas.transaction import Transaction as TransactionSchema
+from ....models.transactions import Transaction as SQLAlchemyTransaction
 from ....crud.crud_transactions import create_transaction, get_transactions, update_transaction, delete_transaction, get_transaction
 from ....models.user import User
 from ....core.security import get_current_active_user
@@ -54,6 +56,11 @@ async def delete_transaction_endpoint(
         raise HTTPException(status_code=404, detail="Transaction not found or you don't have permission to delete it")
     return {"message": "Transaction deleted successfully"}
 
-
+@router.get("/recent", response_model=List[TransactionSchema])
+def get_recent_transactions(limit: int = 10, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    transactions = db.query(SQLAlchemyTransaction).filter(SQLAlchemyTransaction.UserID == current_user.id).order_by(SQLAlchemyTransaction.Date.desc()).limit(limit).all()
+    if not transactions:
+        raise HTTPException(status_code=404, detail="No transactions found")
+    return transactions
 
 # Add endpoints for updating and deleting transactions as needed
