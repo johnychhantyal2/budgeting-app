@@ -1,7 +1,7 @@
 # app/schemas/transaction.py
 
 from pydantic import BaseModel
-from datetime import date
+from datetime import date,datetime
 from typing import Optional
 
 class TransactionBase(BaseModel):
@@ -12,6 +12,7 @@ class TransactionBase(BaseModel):
     Location: Optional[str] = None
     CategoryID: Optional[int] = None
     Is_Income: bool = False  # Add this line
+    CreatedAt: Optional[datetime] = None
 
 class TransactionCreate(TransactionBase):
     # For creating a transaction, all fields except IsIncome should be required

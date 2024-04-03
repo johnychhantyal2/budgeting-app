@@ -12,13 +12,13 @@ This is a simple guide on how to set up and run a FastAPI project using Python v
 1. Clone the project repository:
 
    ```bash
-   git clone https://github.com/your-username/my-fastapi-project.git
+   git clone https://github.com/johnychhantyal2/budgeting-app.git
    ```
 
 2. Navigate to the project directory:
 
    ```bash
-   cd my-fastapi-project
+   cd budgeting-app
    ```
 
 3. Create a virtual environment:
@@ -52,7 +52,7 @@ This is a simple guide on how to set up and run a FastAPI project using Python v
 1. Start the FastAPI server:
 
    ```bash
-   uvicorn main:app --reload
+   uvicorn app.main:app --reload
    ```
 
 2. Open your web browser and navigate to `http://localhost:8000` to access the API.
@@ -64,7 +64,5 @@ This is a simple guide on how to set up and run a FastAPI project using Python v
   ```bash
   deactivate
   ```
-
-- Make sure to update the `main.py` file with your own API routes and logic.
 
 - Refer to the FastAPI documentation for more information on building your API: [FastAPI Documentation](https://fastapi.tiangolo.com/)
