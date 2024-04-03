@@ -11,14 +11,21 @@ from datetime import timedelta
 from ....core.config import settings
 from ....models.user import User
 import logging
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from ....config import RATE_LIMITS
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Assuming you have the limiter instance set up as shown above
+limiter = Limiter(key_func=get_remote_address)
+
 router = APIRouter()
 
 @router.post("/login", response_model=Token)  # Update Token model to include refresh_token
-async def login(user_login: UserLogin, db: Session = Depends(get_db)) -> Any:
+@limiter.limit(RATE_LIMITS["write"])  # This limits to 5 requests per minute
+async def login(request: Request, user_login: UserLogin, db: Session = Depends(get_db)) -> Any:
     user = authenticate_user(db, user_login.username, user_login.password)
     if not user:
         logger.warning(f"Authentication failed for user: {user_login.username}")
@@ -33,7 +40,8 @@ async def login(user_login: UserLogin, db: Session = Depends(get_db)) -> Any:
     return tokens
 
 @router.post("/register", response_model=UserPublic)  # Use UserPublic here
-def register(user_in: UserCreate, db: Session = Depends(get_db)) -> Any:
+@limiter.limit(RATE_LIMITS["write"])  # This limits to 5 requests per minute
+def register(request: Request, user_in: UserCreate, db: Session = Depends(get_db)) -> Any:
     # Check if the username or email already exists
     db_user = crud_user.get_user_by_email(db, email=user_in.email)
     if db_user:
@@ -54,7 +62,8 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)) -> Any:
     return user  # Ensure the returned user matches the UserPublic schema
 
 @router.post("/change-password")
-def change_password(password_change: PasswordChange, user: User = Depends(get_current_active_user), db: Session = Depends(get_db)) -> Any:
+@limiter.limit(RATE_LIMITS["write"])  # This limits to 5 requests per minute
+def change_password(request: Request, password_change: PasswordChange, user: User = Depends(get_current_active_user), db: Session = Depends(get_db)) -> Any:
     if not verify_password(password_change.old_password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect password.")
     if not validate_password(password_change.new_password):
@@ -64,14 +73,16 @@ def change_password(password_change: PasswordChange, user: User = Depends(get_cu
     return {"message": "Password changed successfully."}
 
 @router.post("/logout")
-def logout(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Any:
+@limiter.limit(RATE_LIMITS["write"])  # This limits to 5 requests per minute
+def logout(request: Request,token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Any:
     is_added_to_blocklist = add_token_to_blocklist(db, token)
     if not is_added_to_blocklist:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not process logout request.")
     return {"message": "Logged out successfully."}
 
 @router.post("/refresh-token", response_model=Token)
-def refresh_token(refresh_token: str, db: Session = Depends(get_db)) -> Any:
+@limiter.limit(RATE_LIMITS["write"])  # This limits to 5 requests per minute
+def refresh_token(request: Request,refresh_token: str, db: Session = Depends(get_db)) -> Any:
     username = validate_refresh_token(refresh_token, db)  # Implement this function to validate the refresh token and get the username
     if not username:
         logger.error("Invalid or expired refresh token")
