@@ -3,8 +3,11 @@
 Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
 
 # Requirements
+
+To instal the dependency packages from package.json
 ```bash
 npm install
+```
 
 ## Developing
 
