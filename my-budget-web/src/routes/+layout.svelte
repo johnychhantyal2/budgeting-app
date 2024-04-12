@@ -5,6 +5,7 @@
 	import { initializeAuth } from '$lib/store';
 	import { Toaster } from 'svelte-french-toast';
 	import { ModeWatcher } from 'mode-watcher';
+	import Footer from '$lib/Footer.svelte';
 
 	// On component mount, initialize the authentication state based on localStorage
 	onMount(() => {
@@ -18,3 +19,5 @@
 <Toaster />
 <ModeWatcher />
 <slot />
+
+<Footer />

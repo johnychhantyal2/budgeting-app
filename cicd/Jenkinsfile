@@ -1,0 +1,27 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('SSH to Remote Server') {
+            steps {
+                sshagent(['your-ssh-credentials']) {
+                    sh 'ssh user@remote-server-ip "cd /path/to/backend/folder && git pull"'
+                }
+            }
+        }
+
+        stage('Build Backend') {
+            steps {
+                dir('/path/to/backend/folder') {
+                    sh 'docker build -t backend-image .'
+                }
+            }
+        }
+
+        stage('Deploy using Docker') {
+            steps {
+                sh 'docker run -d -p 8000:8000 --name backend-container backend-image'
+            }
+        }
+    }
+}
