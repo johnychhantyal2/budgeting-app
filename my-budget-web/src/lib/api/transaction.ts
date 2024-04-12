@@ -1,5 +1,6 @@
-import type { TransactionCreateRequest } from '../../types/types';
+import type { Category, TransactionCreateRequest } from '../../types/types';
 import secureFetch from './api-utils';
+import { fetchCategories, updateCategory } from './categories';
 
 /**
  * Fetches transactions from the API.
@@ -104,6 +105,28 @@ export async function updateTransaction(
 		// Handle the response data if needed
 		const updatedTransaction = await response.json();
 		console.log('Transaction updated successfully', updatedTransaction);
+
+		// Call fetchCategories() to update the list of categories in the UI
+		const categories = await fetchCategories(apiUrl, token);
+		console.log('Categories fetched successfully', categories);
+		// Call updateCategory() to update the categoryId in transactionData
+		if (updatedTransaction.CategoryID) {
+			const category = categories.find((c: Category) => c.id === updatedTransaction.CategoryID);
+			console.log('Category found:', category);
+			if (category) {
+				console.log('category exists:', category);
+				// Update budgeted_amount in category
+				const updatedCategory = await updateCategory(apiUrl, token, category.id, {
+					...category,
+					budgeted_limit: category.budgeted_limit + updatedTransaction.Amount
+				});
+				if (updatedCategory) {
+					console.log('Category updated successfully', updatedCategory);
+				} else {
+					console.error('Error updating category:', updatedCategory);
+				}
+			}
+		}
 		return updatedTransaction;
 	} catch (error) {
 		console.error('Error updating transaction:', error);

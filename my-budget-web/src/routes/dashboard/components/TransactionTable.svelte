@@ -3,6 +3,7 @@
 	import { deleteTransaction, createTransaction } from '$lib/api/transaction';
 	import { toast } from 'svelte-french-toast';
 	import { fetchTransactions, updateTransaction } from '$lib/api/transaction';
+	import { fetchCategories } from '$lib/api/categories';
 	import { categoriesStore } from '$lib/store';
 	import { Button } from '$lib/components/ui/button';
 	import * as Table from '$lib/components/ui/table';
@@ -115,6 +116,20 @@
 			toast.error('Failed to create transaction.');
 			console.error(error);
 		}
+
+		// Clear the form after creating a transaction
+		transactionForm = {
+			Amount: 0,
+			Date: '',
+			Description: '',
+			Note: '',
+			Location: '',
+			CategoryID: 0,
+			Is_Income: false
+		};
+
+		// Hide the form after creating a transaction
+		showCreateModal = false;
 	}
 
 	// Define the handleEditSubmit function here
@@ -150,6 +165,8 @@
 			fetchTransactions(import.meta.env.VITE_API_URL, token).then((updatedTransactions) => {
 				transactions = updatedTransactions;
 			});
+			// Refresh Categories list to show the updated data
+			categoriesStore.set(await fetchCategories(import.meta.env.VITE_API_URL, token));
 		} catch (error) {
 			toast.error('Failed to update transaction.');
 			console.error(error);

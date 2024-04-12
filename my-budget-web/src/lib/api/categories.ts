@@ -78,3 +78,30 @@ export async function deleteCategory(apiUrl: string, token: string, categoryId: 
 		throw error;
 	}
 }
+
+/**
+ * Updates a category by its ID.
+ */
+export async function updateCategory(
+	apiUrl: string,
+	token: string,
+	categoryId: number,
+	categoryData: Partial<CategoryCreateRequest>
+) {
+	try {
+		const response = await secureFetch(`${apiUrl}/v1/categories/${categoryId}`, {
+			method: 'PUT',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`
+			},
+			body: JSON.stringify(categoryData)
+		});
+
+		const updatedCategory = await response.json();
+		return updatedCategory;
+	} catch (error) {
+		console.error('Error updating category:', error);
+		throw error;
+	}
+}
