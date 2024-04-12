@@ -6,6 +6,7 @@
 	import Sun from 'lucide-svelte/icons/sun';
 	import Moon from 'lucide-svelte/icons/moon';
 	import { toggleMode } from 'mode-watcher';
+	import Logo from '$lib/assets/day37-calculator.svg';
 
 	function handleLogout(): void {
 		localStorage.removeItem('access_token');
@@ -27,7 +28,7 @@
 			class="flex items-center text-lg font-bold"
 			on:click|preventDefault={() => goto('/')}
 		>
-			<img src="/src/assets/day37-calculator.png" alt="BudgetApp Logo" class="h-8 mr-2" /> BudgetApp
+			<img src={Logo} alt="BudgetApp Logo" class="h-8 mr-2" /> BudgetApp
 		</a>
 		<Button on:click={toggleMode} variant="outline" size="icon" class="ml-4">
 			<Sun
