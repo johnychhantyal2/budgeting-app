@@ -41,7 +41,7 @@ pipeline {
                         echo "Tagging image with: ${env.DOCKERHUB_REPO}:${appVersion}"
 
                         // Tagging image with the version from build_info.json
-                        appImage.tag("${appVersion}")
+                        appImage.tag("backend-${appVersion}")
                     }
                 }
             }
@@ -64,7 +64,7 @@ pipeline {
                             def appVersion = buildInfo.version
                             echo "Pushing version tag: ${appVersion}"
 
-                            appImage.push("${appVersion}")  // Push the version tag
+                            appImage.push("backend-${appVersion}")  // Push the version tag
                         }
                     }
                 }
