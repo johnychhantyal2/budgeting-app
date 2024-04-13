@@ -1,3 +1,5 @@
+import groovy.json.JsonOutput
+
 pipeline {
     agent none  // Define no global agent, as we'll specify the node at stage level
 
@@ -29,7 +31,7 @@ pipeline {
 
                         // Extract the version from build_info.json
                         def buildInfo = readJSON file: 'app/build_info.json'
-                        def appVersion = buildInfo.commit_id  // Assuming commit_id is the version, adjust if necessary
+                        def appVersion = buildInfo.version  // Assuming commit_id is the version, adjust if necessary
 
                         // Tagging the Docker image with the version
                         appImage.tag("${appVersion}")
