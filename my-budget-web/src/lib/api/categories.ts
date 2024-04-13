@@ -1,4 +1,4 @@
-import type { Category, CategoryCreateRequest } from '../../types/types';
+import type { CategoryCreateRequest } from '../../types/types';
 import secureFetch from './api-utils';
 
 /**

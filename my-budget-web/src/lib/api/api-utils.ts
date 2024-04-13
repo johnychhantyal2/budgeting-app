@@ -2,7 +2,6 @@
 
 import { goto } from '$app/navigation';
 import { isAuthenticated, userProfile } from '$lib/store';
-import { toast } from 'svelte-french-toast';
 
 // A utility function to handle the fetch calls
 async function secureFetch(url: string, options: RequestInit): Promise<Response> {
