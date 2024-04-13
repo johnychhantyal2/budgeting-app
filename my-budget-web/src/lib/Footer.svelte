@@ -1,14 +1,17 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import footerInfo from './FooterInfo.json';
 	import { fetchBuildInfo } from './api/version';
+
+	onMount(() => {
+		getBuildInfo();
+	});
 
 	async function getBuildInfo() {
 		const buildInfo = await fetchBuildInfo(import.meta.env.VITE_API_URL);
 		footerInfo.version = buildInfo.version;
 		footerInfo.backend_commit_id = buildInfo.commit_id;
 	}
-
-	getBuildInfo();
 </script>
 
 <footer class="py-8 px-4">
