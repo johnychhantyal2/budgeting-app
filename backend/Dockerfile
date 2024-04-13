@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:3.9
+FROM python:3.9-slim
 
 # Set the working directory in the container
 WORKDIR /usr/src/app
@@ -13,11 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code
 COPY . .
 
-# Define environment variable
-ENV PYTHONUNBUFFERED=1
+# Expose the port on which the application will run
+EXPOSE 8081
 
-# Install Gunicorn for production
-RUN pip install gunicorn
-
-# Use Gunicorn to serve the app with Uvicorn workers. Adjust the number of workers as necessary.
-CMD ["gunicorn", "app.main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
+# Run the FastAPI application using uvicorn server
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8081"]
