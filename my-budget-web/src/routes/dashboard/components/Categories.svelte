@@ -1,12 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-french-toast';
-	import {
-		fetchCategories,
-		createCategory,
-		deleteCategory,
-		updateCategory
-	} from '$lib/api/categories';
+	import { fetchCategories, createCategory, deleteCategory, updateCategory } from '$lib/api/categories';
 	import type { Category, CategoryCreateRequest } from '../../../types/types';
 	import { categoriesStore } from '$lib/store';
 	import * as Table from '$lib/components/ui/table';
@@ -104,7 +99,7 @@
 	}
 
 	// create edit modal to edit category
-	let showEditModalState = false;
+	let showEditModalState = false
 	let editingCategory: Category | null = null;
 
 	function showEditModal(category: Category) {
@@ -115,7 +110,7 @@
 	// Define the handleEditSubmit function to handle the edit form submission
 	async function handleEditSubmit() {
 		if (!editingCategory) return;
-
+	
 		const token = localStorage.getItem('access_token');
 		if (!token) {
 			toast.error('You must be logged in to edit categories.');
@@ -318,7 +313,7 @@
 				</form>
 			</Card.Content>
 			<Card.Footer class="flex justify-end space-x-2">
-				<Button variant="outline" on:click={() => (showEditModalState = false)}>Cancel</Button>
+				<Button variant="outline" on:click={() => showEditModalState = false}>Cancel</Button>
 				<Button on:click={handleEditSubmit}>Update</Button>
 			</Card.Footer>
 		</Card.Root>
