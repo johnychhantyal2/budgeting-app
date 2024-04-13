@@ -2,8 +2,8 @@
 	"title": "My Budget App",
 	"description": "This is a budgeting app to help you manage your finances.",
 	"web_commit_id": "some_commit_id",
-	"backend_commit_id": "some_commit_id",
-	"version": "1.0.0",
+	"backend_commit_id": "{{BACKEND_COMMIT}}",
+	"version": "{{API VERSION}}",
 	"links": [
 		{
 			"id": 1,
