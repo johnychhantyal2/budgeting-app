@@ -1,5 +1,5 @@
 # Stage 1: Build the Svelte application
-FROM node:18 AS build-stage
+FROM node:18-alpine AS build
 
 WORKDIR /app
 
@@ -10,13 +10,13 @@ COPY package*.json ./
 RUN npm install
 
 # Copy the rest of the application code
-COPY . .
-
-# Build the application
-RUN npm run build
+COPY . ./
 
 # Expose port 3000 for the container
 EXPOSE 3000
 
-# Stage 2 is omitted since you're serving directly from the build container
-CMD ["node","-r","dotenv/config", "build"]
+# Build the application
+RUN npm run build
+
+FROM nginx
+COPY --from=build /app/build /usr/share/nginx/html
