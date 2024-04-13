@@ -41,7 +41,7 @@ pipeline {
                         echo "Tagging image with: ${env.DOCKERHUB_REPO}:${appVersion}"
 
                         // Tagging image with the version from build_info.json
-                        appImage.tag("${env.DOCKERHUB_REPO}:${appVersion}")
+                        appImage.tag("${appVersion}")
                     }
                 }
             }
