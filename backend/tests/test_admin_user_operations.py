@@ -5,7 +5,7 @@ client = TestClient(app)
 
 def test_create_admin_user():
     # Test creating an admin user
-    response = client.post("/api/v1/admin/create", json={"username": "admin", "password": "admin"})
+    response = client.post("/api/v1/admin/create", json={"username": "admin", "password": "Administrator123!"})
     assert response.status_code == 200
     assert response.json() == {"message": "Admin user created successfully"}
 

@@ -1,0 +1,20 @@
+{
+	"title": "My Budget App",
+	"description": "This is a budgeting app to help you manage your finances.",
+	"web_commit_id": "some_commit_id",
+	"backend_commit_id": "some_commit_id",
+	"version": "1.0.0",
+	"links": [
+		{
+			"id": 1,
+			"name": "Privacy Policy",
+			"url": "/privacy"
+		},
+		{
+			"id": 2,
+			"name": "Terms of Service",
+			"url": "/terms"
+		}
+	],
+	"copyRight": "© 2024 My Budget App. All rights reserved."
+}

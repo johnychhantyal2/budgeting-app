@@ -8,8 +8,9 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from limits.storage import RedisStorage
 from slowapi.middleware import SlowAPIMiddleware
-# from redis import Redis, RedisError
+from redis import Redis, RedisError
 import os
+import json
 
 REDIS_URL = os.getenv("REDIS_URL")
 
@@ -40,28 +41,34 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
 
+@app.get("/version")
+async def root():
+    with open('app/build_info.json') as f:
+        data = json.load(f)
+    return data
+
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "If you are seeing this, then the backend is up and running. Please navigate to /docs to see the API documentation."}
 
 
-# @app.get("/test-redis")
-# async def test_redis_connection():
-#     redis_url = os.getenv("REDIS_URL")
-#     try:
-#         # Initialize a Redis client and attempt to set and get a value
-#         redis_client = Redis.from_url(redis_url)
-#         test_key = "test_connection_key"
-#         test_value = "success"
-#         redis_client.set(test_key, test_value)
-#         value = redis_client.get(test_key)
-#         if value and value.decode("utf-8") == test_value:
-#             return {"message": "Redis connection and operation successful", "value": value.decode("utf-8")}
-#         else:
-#             return {"message": "Redis connection established, but the test operation did not return the expected result."}
-#     except RedisError as e:
-#         # If there's an error in the Redis operation, return an error response
-#         raise HTTPException(status_code=500, detail=f"Redis error: {e}")
-#     except Exception as e:
-#         # Catch all other exceptions
-#         raise HTTPException(status_code=500, detail=f"An error occurred: {e}")
+@app.get("/test-redis")
+async def test_redis_connection():
+    redis_url = os.getenv("REDIS_URL")
+    try:
+        # Initialize a Redis client and attempt to set and get a value
+        redis_client = Redis.from_url(redis_url)
+        test_key = "test_connection_key"
+        test_value = "success"
+        redis_client.set(test_key, test_value)
+        value = redis_client.get(test_key)
+        if value and value.decode("utf-8") == test_value:
+            return {"message": "Redis connection and operation successful", "value": value.decode("utf-8")}
+        else:
+            return {"message": "Redis connection established, but the test operation did not return the expected result."}
+    except RedisError as e:
+        # If there's an error in the Redis operation, return an error response
+        raise HTTPException(status_code=500, detail=f"Redis error: {e}")
+    except Exception as e:
+        # Catch all other exceptions
+        raise HTTPException(status_code=500, detail=f"An error occurred: {e}")

@@ -2,7 +2,7 @@
 
 # Define rate limit values
 RATE_LIMITS = {
-    "default": "5/minute",
-    "read": "10/minute",
-    "write": "3/minute"
+    "default": "20/minute",
+    "read": "30/minute",
+    "write": "10/minute"
 }
