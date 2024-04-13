@@ -23,14 +23,22 @@ pipeline {
 
                         // Fetch the commit ID of the latest commit
                         def commitId = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+                        echo "Commit ID: ${commitId}"
+
                         // Prepare and write updated build_info.json
-                        def newBuildInfo = readFile('app/build_info.json').replace('{commit_id}', commitId)
+                        def originalBuildInfo = readFile('app/build_info.json')
+                        echo "Original build_info.json: ${originalBuildInfo}"
+
+                        def newBuildInfo = originalBuildInfo.replace('{commit_id}', commitId)
                         writeFile file: 'app/build_info.json', text: newBuildInfo
+
+                        echo "Updated build_info.json: ${newBuildInfo}"
 
                         // Build Docker image
                         def appImage = docker.build("${env.DOCKERHUB_REPO}:backend")
                         def buildInfo = readJSON file: 'app/build_info.json'
                         def appVersion = buildInfo.version  // Reading the version directly
+                        echo "Tagging image with: ${env.DOCKERHUB_REPO}:${appVersion}"
 
                         // Tagging image with the version from build_info.json
                         appImage.tag("${env.DOCKERHUB_REPO}:${appVersion}")
@@ -46,13 +54,17 @@ pipeline {
                     script {
                         // Load and push the Docker image
                         def appImage = docker.image("${env.DOCKERHUB_REPO}:backend")
+                        echo "Docker Image to push: ${env.DOCKERHUB_REPO}:backend"
+
                         docker.withRegistry('https://index.docker.io/v1/', "${env.DOCKERHUB_CREDENTIALS_ID}") {
-                            // Push the 'latest' tag
-                            appImage.push('latest')
-                            // Load version-specific info and push version tag
+                            appImage.push('latest')  // Push the latest tag
+                            echo 'Pushing latest tag.'
+
                             def buildInfo = readJSON file: 'app/build_info.json'
                             def appVersion = buildInfo.version
-                            appImage.push("${appVersion}")
+                            echo "Pushing version tag: ${appVersion}"
+
+                            appImage.push("${appVersion}")  // Push the version tag
                         }
                     }
                 }
