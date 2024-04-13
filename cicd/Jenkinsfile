@@ -4,14 +4,14 @@ pipeline {
     agent none  // Define no global agent, as we'll specify the node at stage level
 
     environment {
-        REPO_URL = 'https://github.com/johnychhantyal2/budgeting-app.git' // Replace with your repo URL
+        REPO_URL = 'https://github.com/johnychhantyal2/budgeting-app.git'
         DOCKERHUB_REPO = 'trhex/budget-app'
-        DOCKERHUB_CREDENTIALS_ID = 'dockerhub-creds' // ID for your DockerHub credentials stored in Jenkins
+        DOCKERHUB_CREDENTIALS_ID = 'dockerhub-creds'  // ID for your DockerHub credentials stored in Jenkins
     }
 
     stages {
         stage('Prepare and Build') {
-            agent { 
+            agent {
                 node {
                     label 'azure'  // Replace with the label of your node
                 }
@@ -19,42 +19,47 @@ pipeline {
             steps {
                 cleanWs()  // Cleans the workspace
                 git branch: 'main', url: "${env.REPO_URL}"  // Clones the repository, main branch
-                dir('backend') {  // Changes to backend directory
+                dir('backend') {
                     script {
-                        // Fetch the commit ID of the latest commit
+                        sh 'docker image prune -f || true'  // Prune unused Docker images
+                        sh "docker rmi ${env.DOCKERHUB_REPO}:backend || true"  // Remove existing image if exists
+
                         def commitId = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
-                        // Write the commit ID to build_info.json
-                        writeFile file: 'app/build_info.json', text: JsonOutput.toJson(["commit_id": commitId])
+                        // Update the build_info.json with current commit ID
+                        def newBuildInfo = readFile('app/build_info.json').replace('{commit_id}', commitId)
+                        writeFile file: 'app/build_info.json', text: newBuildInfo
 
-                        // Build the Docker image
-                        def appImage = docker.build("${env.DOCKERHUB_REPO}:latest")
-
-                        // Extract the version from build_info.json
+                        def appImage = docker.build("${env.DOCKERHUB_REPO}:backend")
                         def buildInfo = readJSON file: 'app/build_info.json'
-                        def appVersion = buildInfo.version  // Assuming commit_id is the version, adjust if necessary
+                        def appVersion = buildInfo.version  // Use the version from build_info.json
 
-                        // Tagging the Docker image with the version
-                        appImage.tag("${appVersion}")
+                        appImage.tag("${env.DOCKERHUB_REPO}:${appVersion}")
                     }
                 }
             }
         }
 
         stage('Publish Image') {
-            agent { 
+            agent {
                 node {
-                    label 'azure'  // Ensure it runs on the same node, or specify another if needed
+                    label 'azure'
                 }
             }
             steps {
-                script {
-                    def appImage = docker.image("${env.DOCKERHUB_REPO}:latest")
-                    docker.withRegistry('https://index.docker.io/v1/', "${env.DOCKERHUB_CREDENTIALS_ID}") {
-                        // Push both tags: latest and version
-                        appImage.push("latest")
-                        def buildInfo = readJSON file: 'backend/app/build_info.json'
-                        def appVersion = buildInfo.version  // Again, ensure this matches your versioning
-                        appImage.push("${appVersion}")
+                dir('backend') { // Ensuring operations are within the backend directory
+                    script {
+                        // Load the Docker image that was built in the previous stage
+                        def appImage = docker.image("${env.DOCKERHUB_REPO}:backend")
+                        // Access DockerHub with credentials
+                        docker.withRegistry('https://index.docker.io/v1/', "${env.DOCKERHUB_CREDENTIALS_ID}") {
+                            // Push the 'latest' tag
+                            appImage.push('latest')
+                            // Retrieve the version from build_info.json
+                            def buildInfo = readJSON file: 'app/build_info.json'
+                            def appVersion = buildInfo.version
+                            // Push the version tag
+                            appImage.push("${appVersion}")
+                        }
                     }
                 }
             }
