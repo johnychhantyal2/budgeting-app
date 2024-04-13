@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { isAuthenticated } from '$lib/store';
 	import { userProfile } from '$lib/store';
 	import toast from 'svelte-french-toast';

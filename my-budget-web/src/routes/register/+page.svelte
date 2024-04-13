@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { isAuthenticated, userProfile } from '$lib/store';
+	import { isAuthenticated } from '$lib/store';
 	import toast from 'svelte-french-toast';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card/index.js';
@@ -110,24 +110,3 @@
 		</Card.Content>
 	</Card.Root>
 </div>
-
-<style>
-	.form-glass-effect {
-		/* background-color: rgba(255, 255, 255, 0.2); */
-		backdrop-filter: blur(10px);
-		border-radius: 12px;
-		border: 1px solid rgba(255, 255, 255, 0.3);
-		padding: 2rem;
-		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-	}
-
-	.input-hover-effect:focus {
-		border-color: rgba(59, 130, 246, 0.5);
-		box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
-	}
-
-	.no-scroll {
-		overflow: hidden;
-		height: 100%;
-	}
-</style>
