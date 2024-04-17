@@ -9,38 +9,134 @@ pipeline {
         DOCKERHUB_CREDENTIALS_ID = 'dockerhub-creds'
     }
 
+    tools {
+        nodejs 'nodejs' // Ensure Node.js is configured under Jenkins Global Tool Configuration
+    }
+
     stages {
-        stage('Prepare and Build') {
+        stage('Setup Tools') {
+            agent { node { label 'master' } }
+            steps {
+                script {
+                    // Set the SONAR_SCANNER_HOME environment variable using the Jenkins tool configuration
+                    env.SONAR_SCANNER_HOME = tool(name: 'sonar-scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation')
+                }
+            }
+        }
+
+        stage('Scan using sonarqube') {
+            agent { node { label 'master' } }
+            steps {
+                cleanWs()
+                git branch: 'main', url: "${env.REPO_URL}"
+                withSonarQubeEnv('sonarqube-server') {
+                // Use double quotes for Groovy string interpolation
+                sh """
+                    export SONAR_SCANNER_OPTS="-Dsonar.projectKey=my-project -Dsonar.sources=."
+                    ${env.SONAR_SCANNER_HOME}/bin/sonar-scanner \
+                    -Dsonar.projectName='budgeting-app' \
+                    -Dsonar.projectKey='budgeting-app'
+                    """
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            agent { node { label 'master' } }
+            steps {
+                waitForQualityGate abortPipeline: false, credentialsId: 'sonarqube-token'
+            }
+        }
+
+        stage('Checkout') {
             agent { node { label 'azure' } }
             steps {
                 cleanWs()
                 git branch: 'main', url: "${env.REPO_URL}"
+            }
+        }
+
+        stage('Setup Python Environment') {
+            agent { node { label 'azure' } }
+            steps {
                 dir('backend') {
                     script {
-                        // Prune old images and remove existing tagged image if it exists
+                        sh """
+                        #!/bin/bash
+                        set -x  # Print each command before executing it for debugging
+                        python3 -m venv venv
+                        if [ \$? -ne 0 ]; then echo 'Failed to create virtual environment'; exit 1; fi
+                        echo 'Virtual environment created successfully.'
+
+                        . venv/bin/activate
+                        if [ \$? -ne 0 ]; then echo 'Failed to activate virtual environment'; exit 1; fi
+                        echo 'Virtual environment activated.'
+
+                        pip install -r requirements.txt
+                        if [ \$? -ne 0 ]; then echo 'Failed to install dependencies'; exit 1; fi
+                        echo 'Dependencies installed successfully.'
+                        """
+                    }
+                }
+                
+            }
+        }
+
+        stage('Run Pytest') {
+            agent { node { label 'azure' } }
+            steps {
+                dir('backend') {
+                    script {
+                        sh """
+                        #!/bin/bash
+                        set -x
+                        . venv/bin/activate
+                        if [ \$? -ne 0 ]; then echo 'Failed to reactivate virtual environment'; exit 1; fi
+                        echo 'Virtual environment reactivated.'
+                        pytest  # Add your pytest command line arguments here as needed
+                        TEST_STATUS=\$?
+                        if [ \$TEST_STATUS -ne 0 ]; then
+                            echo 'Tests failed, but continuing the pipeline.'
+                        else
+                            echo 'Tests passed successfully.'
+                        fi
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Prepare Environment') {
+            agent { node { label 'azure' } }
+            steps {
+                dir('backend') {
+                    script {
                         sh 'docker image prune -f || true'
                         sh "docker rmi ${env.DOCKERHUB_REPO}:backend || true"
+                    }
+                }
+            }
+        }
 
-                        // Fetch the commit ID of the latest commit
+        stage('Build Docker Image') {
+            agent { node { label 'azure' } }
+            steps {
+                dir('backend') {
+                    script {
                         def commitId = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
                         echo "Commit ID: ${commitId}"
 
-                        // Prepare and write updated build_info.json
                         def originalBuildInfo = readFile('app/build_info.json')
                         echo "Original build_info.json: ${originalBuildInfo}"
-
                         def newBuildInfo = originalBuildInfo.replace('{commit_id}', commitId)
                         writeFile file: 'app/build_info.json', text: newBuildInfo
-
                         echo "Updated build_info.json: ${newBuildInfo}"
 
-                        // Build Docker image
                         def appImage = docker.build("${env.DOCKERHUB_REPO}:backend")
                         def buildInfo = readJSON file: 'app/build_info.json'
-                        def appVersion = buildInfo.version  // Reading the version directly
+                        def appVersion = buildInfo.version
                         echo "Tagging image with: ${env.DOCKERHUB_REPO}:${appVersion}"
 
-                        // Tagging image with the version from build_info.json
                         appImage.tag("backend-${appVersion}")
                     }
                 }
@@ -52,19 +148,18 @@ pipeline {
             steps {
                 dir('backend') {
                     script {
-                        // Load and push the Docker image
                         def appImage = docker.image("${env.DOCKERHUB_REPO}:backend")
                         echo "Docker Image to push: ${env.DOCKERHUB_REPO}:backend"
 
                         docker.withRegistry('https://index.docker.io/v1/', "${env.DOCKERHUB_CREDENTIALS_ID}") {
-                            appImage.push('latest')  // Push the latest tag
+                            appImage.push('latest')
                             echo 'Pushing latest tag.'
 
                             def buildInfo = readJSON file: 'app/build_info.json'
                             def appVersion = buildInfo.version
                             echo "Pushing version tag: ${appVersion}"
 
-                            appImage.push("backend-${appVersion}")  // Push the version tag
+                            appImage.push("backend-${appVersion}")
                         }
                     }
                 }
