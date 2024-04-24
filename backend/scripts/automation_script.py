@@ -1,5 +1,11 @@
 import requests
 import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+test_user = os.getenv("TEST_USER");
+test_password = os.getenv("TEST_PASSWORD");
 
 # Define the base URL of your FastAPI application
 base_url = "http://localhost:8000"
@@ -7,8 +13,10 @@ base_url = "http://localhost:8000"
 # Call login endpoint to get the token
 response = requests.post(
     f"{base_url}/v1/auth/login",
-    data=json.dumps({"username": "Test", "password": "Test123#"}),
+    data=json.dumps({"username": test_user, "password": test_password}),
 )
+
+# Check if the request was successful
 
 # Use the token for subsequent requests
 token = response.json().get("access_token")
@@ -19,8 +27,11 @@ headers = {
 
 # Define the data for a new category
 category_data = {
-    "name": "New Category",
-    "description": "This is a new category",
+  "name": "<string>",
+  "budgeted_amount": 0,
+  "budgeted_limit": 0,
+  "description": "<string>",
+  "icon": "<string>"
 }
 
 # Send a POST request to create a new category
