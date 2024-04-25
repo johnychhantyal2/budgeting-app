@@ -16,7 +16,7 @@
 
 <footer class="py-8 px-4">
 	<div class="container mx-auto">
-		<div class="flex flex-wrap justify-between">
+		<!-- <div class="flex flex-wrap justify-between">
 			<div>
 				<h3 class="text-lg font-semibold">{footerInfo.title}</h3>
 				<p class="mt-2 text-sm">{footerInfo.description}</p>
@@ -33,7 +33,7 @@
 					{/each}
 				</ul>
 			</div>
-		</div>
+		</div> -->
 		<div class="mt-8 text-center">
 			<p>{footerInfo.copyRight}</p>
 		</div>

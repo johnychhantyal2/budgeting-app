@@ -2,6 +2,8 @@ import requests
 import json
 import os
 from dotenv import load_dotenv
+import random
+import string
 
 load_dotenv()
 test_user = os.getenv("TEST_USER");
@@ -25,13 +27,15 @@ headers = {
     "Authorization": f"Bearer {token}",
 }
 
+const_string = "<string>";
+
 # Define the data for a new category
 category_data = {
-  "name": "<string>",
+  "name": "test category",
   "budgeted_amount": 0,
   "budgeted_limit": 0,
-  "description": "<string>",
-  "icon": "<string>"
+  "description": const_string,
+  "icon": const_string
 }
 
 # Send a POST request to create a new category

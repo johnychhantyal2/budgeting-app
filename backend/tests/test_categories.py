@@ -2,6 +2,8 @@ from fastapi.testclient import TestClient
 from app.main import app
 import os
 from dotenv import load_dotenv
+import random
+import string
 
 load_dotenv()
 
@@ -21,9 +23,16 @@ print(response.json())
 # Test creating a category with authentication header
 headers = {"Authorization": f"Bearer {token}"}
 
+# Generate a new random category name
+
+def random_string(length):
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(length))
+
+
 def test_create_category_endpoint():
     # Test creating a category
-    response = client.post("/v1/categories/", json={"name": "Category 1", "budgeted_amount": 0, "budgeted_limit": 0, "color_code": "blue", "description": "", "icon": ""}, headers=headers)
+    response = client.post("/v1/categories/", json={"name": random_string(5), "budgeted_amount": 0, "budgeted_limit": 0, "color_code": "blue", "description": "", "icon": ""}, headers=headers)
     print(response.json())
     assert response.status_code == 200
 
